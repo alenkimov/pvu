@@ -34,53 +34,59 @@ async def work():
                     token = token.split()[1]
                 tokens.add(token)
         async with aiohttp.ClientSession() as session:
-            tokens.update({await get_auth_token(session, account) for account in accounts})
+            try:
+                tokens.update({await get_auth_token(session, account) for account in accounts})
+            except:
+                logger.error(f"Не удалось запросить токены авторизации")
             for token in tokens:
-                user = await get_user_info(session, token)
-                logger.info(
-                    f"[{user.public_address}]"
-                    f" LE={user.le_amount}"
-                    f" water={user.watering_tools}"
-                    f" scarecrows={user.chase_crow_tools}"
-                )
+                try:
+                    user = await get_user_info(session, token)
+                    logger.info(
+                        f"[{user.public_address}]"
+                        f" LE={user.le_amount}"
+                        f" water={user.watering_tools}"
+                        f" scarecrows={user.chase_crow_tools}"
+                    )
 
-                slots = await get_slots(session, token)
+                    slots = await get_slots(session, token)
 
-                if PROCESS_ONLY_MY_PLANTS:
-                    slots = [slot for slot in slots if slot.owner_id == user.public_address]
+                    if PROCESS_ONLY_MY_PLANTS:
+                        slots = [slot for slot in slots if slot.owner_id == user.public_address]
 
-                crow_amount = len(list(filter(lambda slot: slot.action_info.is_have_crow, slots)))
-                need_water_amount = len(list(filter(lambda slot: slot.action_info.is_need_water, slots)))
+                    crow_amount = len(list(filter(lambda slot: slot.action_info.is_have_crow, slots)))
+                    need_water_amount = len(list(filter(lambda slot: slot.action_info.is_need_water, slots)))
 
-                chase_crow_tools_to_buy = max(crow_amount - user.chase_crow_tools, 0)
-                watering_tools_to_buy = max(need_water_amount - user.watering_tools, 0)
+                    chase_crow_tools_to_buy = max(crow_amount - user.chase_crow_tools, 0)
+                    watering_tools_to_buy = max(need_water_amount - user.watering_tools, 0)
 
-                if (user.le_amount - (chase_crow_tools_to_buy + watering_tools_to_buy) * 10) < 0:
-                    logger.warning(f"[{user.public_address}] Not enough LE to buy tools!")
-                else:
-                    if chase_crow_tools_to_buy > 0:
-                        await buy_scarecrow(session, token, chase_crow_tools_to_buy)
-                        logger.success(f"[{user.public_address}] Bought {chase_crow_tools_to_buy} chase crow tools!")
-                    if watering_tools_to_buy > 0:
-                        await buy_water(session, token, watering_tools_to_buy)
-                        logger.success(f"[{user.public_address}] Bought {watering_tools_to_buy} watering tools!")
-                    for slot in slots:
-                        if slot.action_info.is_have_crow:
-                            await chase_crow(session, token, slot.id)
-                            logger.success(
-                                f"[{user.public_address}] [{slot.location.x}, {slot.location.y}] chased!"
-                            )
-                        if slot.action_info.is_need_water:
-                            await water_plant(session, token, slot.id)
-                            logger.success(
-                                f"[{user.public_address}] [{slot.location.x}, {slot.location.y}] watered!"
-                            )
-                    now = datetime.utcnow().replace(tzinfo=timezone.utc)
-                    slot_ids_to_harvest = []
-                    for slot in slots:
-                        if slot.harvest_time is not None and now > slot.harvest_time:
-                            slot_ids_to_harvest.append(slot.id)
-                    await harvest_plants(session, token, slot_ids_to_harvest)
-
+                    if (user.le_amount - (chase_crow_tools_to_buy + watering_tools_to_buy) * 10) < 0:
+                        logger.warning(f"[{user.public_address}] Not enough LE to buy tools!")
+                    else:
+                        if chase_crow_tools_to_buy > 0:
+                            await buy_scarecrow(session, token, chase_crow_tools_to_buy)
+                            logger.success(f"[{user.public_address}] Bought {chase_crow_tools_to_buy} chase crow tools!")
+                        if watering_tools_to_buy > 0:
+                            await buy_water(session, token, watering_tools_to_buy)
+                            logger.success(f"[{user.public_address}] Bought {watering_tools_to_buy} watering tools!")
+                        for slot in slots:
+                            if slot.action_info.is_have_crow:
+                                await chase_crow(session, token, slot.id)
+                                logger.success(
+                                    f"[{user.public_address}] [{slot.location.x}, {slot.location.y}] chased!"
+                                )
+                            if slot.action_info.is_need_water:
+                                await water_plant(session, token, slot.id)
+                                logger.success(
+                                    f"[{user.public_address}] [{slot.location.x}, {slot.location.y}] watered!"
+                                )
+                        now = datetime.utcnow().replace(tzinfo=timezone.utc)
+                        slot_ids_to_harvest = []
+                        if slot_ids_to_harvest:
+                            for slot in slots:
+                                if slot.harvest_time is not None and now > slot.harvest_time:
+                                    slot_ids_to_harvest.append(slot.id)
+                            await harvest_plants(session, token, slot_ids_to_harvest)
+                except:
+                    logger.error(f"[{token}] Ну удалось обработать аккаунт")
         logger.info(f"Sleep {DELAY} secs :)")
         sleep(DELAY)
