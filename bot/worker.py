@@ -45,8 +45,8 @@ async def work():
                     logger.info(
                         f"[{user.public_address}]"
                         f" LE={user.le_amount}"
-                        f" water={user.watering_tools}"
-                        f" scarecrows={user.chase_crow_tools}"
+                        f", water={user.watering_tools}"
+                        f", scarecrows={user.chase_crow_tools}"
                     )
 
                     # По умолчанию обрабатываются только растения, принадлежащие пользователю
@@ -118,13 +118,14 @@ async def work():
                                         f" watered!"
                                     )
                         now = datetime.utcnow().replace(tzinfo=timezone.utc)
-                        slot_ids_to_harvest = []
+                        slots_to_harvest = []
                         for slot in slots:
                             if slot.harvest_time is not None and now > slot.harvest_time:
-                                slot_ids_to_harvest.append(slot.id)
-                        if slot_ids_to_harvest:
+                                slots_to_harvest.append(slot)
+                        if slots_to_harvest:
+                            slot_ids_to_harvest = [slot.id for slot in slots_to_harvest]
                             await harvest_plants(session, token, slot_ids_to_harvest)
-                            for slot in slots:
+                            for slot in slots_to_harvest:
                                 logger.success(
                                     f"[{user.public_address}]"
                                     f" [land.x={land.location.x}, land.y={land.location.y}]"
