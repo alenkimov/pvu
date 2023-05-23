@@ -14,8 +14,8 @@
 - Установите [git](https://git-scm.com/download/win).
 - Склонируйте этот репозиторий, после чего перейдите в него:
 ```bash
-git clone https://github.com/AlenKimov/swaprum_claimer.git
-cd swaprum_claimer
+git clone https://github.com/AlenKimov/pvu.git
+cd pvu
 ```
 - Установите требуемые библиотеки с помощью Poetry:
 ```bash
@@ -46,8 +46,8 @@ export PATH="/root/.local/bin:$PATH"
 ```
 - Склонируйте этот репозиторий, после чего перейдите в него:
 ```bash
-git clone https://github.com/AlenKimov/swaprum_claimer.git
-cd swaprum_claimer
+git clone https://github.com/AlenKimov/pvu.git
+cd pvu
 ```
 - Установите библиотеки следующей командой (или запустите `install-libraries.bat` на Windows):
 ```bash
