@@ -24,8 +24,15 @@ async def work():
     while True:
         with open(PRIVATE_KEYS_TXT, "r") as file:
             accounts: set[LocalAccount] = {Account.from_key(key.strip()) for key in file.readlines() if key != "\n"}
+        tokens: set[str] = set()
         with open(TOKENS_TXT, "r") as file:
-            tokens: set[str] = {address.strip() for address in file.readlines() if address != "\n"}
+            for token in file.readlines():
+                token = token.strip()
+                if token == "\n":
+                    continue
+                if token.startswith("bearerHeader "):
+                    token = token.split()[1]
+                tokens.add(token)
         async with aiohttp.ClientSession() as session:
             tokens.update({await get_auth_token(session, account) for account in accounts})
             for token in tokens:
