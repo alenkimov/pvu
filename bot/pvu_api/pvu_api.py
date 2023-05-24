@@ -5,7 +5,7 @@ from eth_account.messages import encode_defunct
 from eth_account.account import LocalAccount
 
 from bot._web3 import w3
-from .models import Land, Slot, Location, ActionInfo, User
+from .models import Land, Slot, Location, ActionInfo, User, DecoEffects
 from .enums import ToolType
 
 
@@ -94,6 +94,10 @@ async def get_slots_by_location(
         )
         if "harvestTime" in slot_data:
             slot.harvest_time = datetime.fromtimestamp(slot_data["harvestTime"] // 1000, timezone.utc)
+        if "decoEffects" in slot_data:
+            slot.deco_effects = DecoEffects()
+            if "isGoodCrow" in slot_data["decoEffects"]:
+                slot.deco_effects.is_good_crow = slot_data["decoEffects"]["isGoodCrow"]
         slots.append(slot)
     return slots
 

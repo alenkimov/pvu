@@ -24,9 +24,14 @@ class ActionInfo(BaseModel):
     total_water_time: int
 
 
+class DecoEffects(BaseModel):
+    is_good_crow: bool or None = None
+
+
 class Slot(BaseModel):
     action_info: ActionInfo
     location: Location
+    deco_effects: DecoEffects or None = None
 
     id: str
     land_id: str
