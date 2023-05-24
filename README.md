@@ -1,5 +1,5 @@
 # PVU bot
-[ [Channel](https://t.me/Cum_Insider) ] [ [Telegram](https://t.me/AlenKimov) ]
+[ [Channel](https://t.me/Cum_Insider) ]
 
 - [Установка под Windows](#Установка-под-Windows)
 - [Установка под Ubuntu](#Установка-под-Ubuntu)
