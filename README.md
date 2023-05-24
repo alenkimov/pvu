@@ -12,12 +12,12 @@
 - Установите [Python 3.11](https://www.python.org/downloads/windows/). Не забудьте поставить галочку напротив "Add Python to PATH".
 - Установите пакетный менеджер [Poetry](https://python-poetry.org/docs/). [ [Подробная инструкция](https://teletype.in/@alenkimov/poetry) ].
 - Установите [git](https://git-scm.com/download/win).
-- Склонируйте этот репозиторий, после чего перейдите в него:
+- Откройте консоль в удобном месте. Склонируйте (скачайте) этот репозиторий, после чего перейдите в него:
 ```bash
 git clone https://github.com/AlenKimov/pvu.git
 cd pvu
 ```
-- Установите требуемые библиотеки командой `poetry update`. [ [Подробнее об ошибке "Microsoft Visual C++ 14.0 or greater is required"](https://web3py.readthedocs.io/en/latest/troubleshooting.html#why-am-i-getting-visual-c-or-cython-not-installed-error) ]
+- Установите требуемые библиотеки командой `poetry update`. [ [Подробнее об ошибке "Microsoft Visual C++ 14.0 or greater is required"](https://teletype.in/@alenkimov/web3-installation-error) ]
 
 
 ## Установка под Ubuntu
