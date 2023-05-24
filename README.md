@@ -11,14 +11,15 @@
 ## Установка под Windows
 - Установите [Python 3.11](https://www.python.org/downloads/windows/). Не забудьте поставить галочку напротив "Add Python to PATH".
 - Установите пакетный менеджер [Poetry](https://python-poetry.org/docs/): [инструкция](https://teletype.in/@alenkimov/poetry).
-- Установите [git](https://git-scm.com/download/win).
-- Откройте консоль в удобном месте. Склонируйте (скачайте) этот репозиторий, после чего перейдите в него:
-```bash
-git clone https://github.com/AlenKimov/pvu.git
-cd pvu
-```
 - Установите MSVC и Пакет SDK для Windows: [инструкция](https://teletype.in/@alenkimov/web3-installation-error). Без этого при попытке установить библиотеку web3 будет возникать ошибка "Microsoft Visual C++ 14.0 or greater is required".
-- Установите требуемые библиотеки командой `poetry update`. 
+- Установите [git](https://git-scm.com/download/win). Это позволит с легкостью получать обновления скрипта командой `git pull`.
+- Откройте консоль в удобном месте.
+  - Склонируйте (скачайте) этот репозиторий:
+    ```bash
+    git clone https://github.com/AlenKimov/pvu.git
+    ```
+  - Перейдите в папку проекта командой `cd pvu`
+  - Установите требуемые библиотеки командой `poetry update`
 
 ## Установка под Ubuntu
 - Обновите систему:
