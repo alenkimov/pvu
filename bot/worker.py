@@ -9,15 +9,21 @@ from eth_account.signers.local import LocalAccount
 from bot.pvu_api import get_auth_token, get_slots_by_location, get_land, get_user_info, harvest_plants
 from bot.pvu_api import water_plant, chase_crow, chase_good_crow
 from bot.pvu_api import buy_water, buy_scarecrow
-from bot.paths import PRIVATE_KEYS_TXT, TOKENS_TXT
+from bot.paths import INPUT_DIR, PRIVATE_KEYS_TXT, TOKENS_TXT
 from bot.logger import logger
 from bot.config import DELAY, PROCESS_ONLY_MY_PLANTS
+
+
+if not INPUT_DIR.exists():
+    INPUT_DIR.mkdir(exist_ok=True)
+    logger.info(f"Создал папку для входных данных {INPUT_DIR}")
 
 
 for filepath in [PRIVATE_KEYS_TXT, TOKENS_TXT]:
     if not filepath.exists():
         with open(filepath, "w"):
             pass
+        logger.info(f"Создал файл {filepath}")
 
 
 async def work():
@@ -38,6 +44,14 @@ async def work():
                 tokens.update({await get_auth_token(session, account) for account in accounts})
             except:
                 logger.error(f"Не удалось запросить токены авторизации")
+            if not tokens:
+                logger.warning(
+                    f"Для работы скрипта требуется хотя бы один токен авторизации или приватный ключ!"
+                    f"\nКак получить токен авторизации: https://github.com/AlenKimov/pvu#о-токене-авторизации"
+                    f"\nВнесите токены авторизации в файл {TOKENS_TXT}"
+                    f"\nИли внесите приватные ключи в файл {PRIVATE_KEYS_TXT}"
+                )
+                break
             for token in tokens:
                 try:
                     # Получаем данные о пользователе
