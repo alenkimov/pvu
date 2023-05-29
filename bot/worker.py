@@ -30,9 +30,13 @@ for filepath in [PRIVATE_KEYS_TXT, TOKENS_TXT]:
 
 async def work():
     while True:
+        tokens: set[str] = set()
+
+        # Подгружаем приватные ключи
         with open(PRIVATE_KEYS_TXT, "r") as file:
             accounts: set[LocalAccount] = {Account.from_key(key.strip()) for key in file.readlines() if key != "\n"}
-        tokens: set[str] = set()
+
+        # Подгружаем токены
         with open(TOKENS_TXT, "r") as file:
             for token in file.readlines():
                 token = token.strip()
@@ -41,7 +45,9 @@ async def work():
                 if token.startswith("bearerHeader "):
                     token = token.split()[1]
                 tokens.add(token)
+
         async with aiohttp.ClientSession() as session:
+            # Запрашиваем токены по приватным ключам
             try:
                 tokens.update({await get_auth_token(session, account) for account in accounts})
             except:
@@ -54,34 +60,15 @@ async def work():
                     f"\nИли внесите приватные ключи в файл {PRIVATE_KEYS_TXT}"
                 )
                 break
+
+            # По умолчанию обрабатываются только растения, принадлежащие пользователю
+            if PROCESS_ONLY_MY_PLANTS:
+                logger.info(f"Обработка растений, принадлежащих пользователю")
+            else:
+                logger.info(f"Обработка всех растений, включая чужие")
+
+            # Обрабатываем токены
             for token in tokens:
-                # Получаем данные о пользователе
-                try:
-                    user = await get_user_info(session, token)
-                    logger.info(
-                        f"[{user.public_address}]"
-                        f" LE={user.le_amount}"
-                        f", water={user.watering_tools}"
-                        f", scarecrows={user.chase_crow_tools}"
-                        f", tickets={user.number_of_lottery_tickets}"
-                        f", seeds={user.number_of_seeds}"
-                    )
-                except:
-                    logger.error(f"[{token[:4]}...{token[-4:]}] Не удалось получить данные о пользователе")
-                    continue
-
-                # По умолчанию обрабатываются только растения, принадлежащие пользователю
-                if PROCESS_ONLY_MY_PLANTS:
-                    logger.info(
-                        f"[{user.public_address}]"
-                        f" Обработка растений, принадлежащих пользователю"
-                    )
-                else:
-                    logger.info(
-                        f"[{user.public_address}]"
-                        f" Обработка всех растений, включая чужие"
-                    )
-
                 # Получаем данные о землях пользователя
                 try:
                     lands = await get_land(session, token)
@@ -93,6 +80,23 @@ async def work():
                     continue
 
                 for land in lands:
+                    # Получаем актуальные данные о пользователе
+                    # Данные нужно актуализировать после обработки каждой земли
+                    try:
+                        user = await get_user_info(session, token)
+                        logger.info(
+                            f"[{user.public_address}]"
+                            f" [land.x={land.location.x}, land.y={land.location.y}]"
+                            f" LE={user.le_amount}"
+                            f", water={user.watering_tools}"
+                            f", scarecrows={user.chase_crow_tools}"
+                            f", tickets={user.number_of_lottery_tickets}"
+                            f", seeds={user.number_of_seeds}"
+                        )
+                    except:
+                        logger.error(f"[{token[:4]}...{token[-4:]}] Не удалось получить данные о пользователе")
+                        continue
+
                     # Получаем данные о слотах земли
                     try:
                         slots = await get_slots_by_location(session, token, land.location)
@@ -132,6 +136,7 @@ async def work():
                                 await buy_scarecrow(session, token, chase_crow_tools_to_buy)
                                 logger.success(
                                     f"[{user.public_address}]"
+                                    f" [land.x={land.location.x}, land.y={land.location.y}]"
                                     f" Приобретено пугалок: {chase_crow_tools_to_buy}"
                                 )
                             except:
@@ -146,6 +151,7 @@ async def work():
                                 await buy_water(session, token, watering_tools_to_buy)
                                 logger.success(
                                     f"[{user.public_address}]"
+                                    f" [land.x={land.location.x}, land.y={land.location.y}]"
                                     f" Приобретено воды: {watering_tools_to_buy}"
                                 )
                             except:
