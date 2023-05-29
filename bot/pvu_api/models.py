@@ -42,13 +42,13 @@ class Slot(BaseModel):
 
 
 class User(BaseModel):
+    public_address: str
+    le_amount: int
     chase_crow_tools: int
     watering_tools: int
-    le_amount: int
     number_of_boxchain_tickets: int
     number_of_lottery_tickets: int
-    number_of_seeds: int
-    public_address: str
+    number_of_seeds: int = 0
 
 
 class Result(BaseModel):

@@ -46,9 +46,10 @@ async def get_user_info(session: aiohttp.ClientSession, token: str) -> User:
         le_amount=data["leAmount"],
         number_of_boxchain_tickets=data["numberOfBoxchainTickets"],
         number_of_lottery_tickets=data["numberOfLotteryTickets"],
-        number_of_seeds=data["numberOfSeeds"],
         public_address=data["publicAddress"],
     )
+    if "numberOfSeeds" in data:
+        user.number_of_seeds = data["numberOfSeeds"]
     return user
 
 
