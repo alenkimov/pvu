@@ -46,6 +46,7 @@ async def get_user_info(session: aiohttp.ClientSession, token: str) -> User:
         le_amount=data["leAmount"],
         number_of_boxchain_tickets=data["numberOfBoxchainTickets"],
         number_of_lottery_tickets=data["numberOfLotteryTickets"],
+        number_of_seeds=data["numberOfSeeds"],
         public_address=data["publicAddress"],
     )
     return user
@@ -145,48 +146,50 @@ async def water_plant(
         session: aiohttp.ClientSession,
         token: str,
         slot_id: str,
-):
+) -> dict:
     url = "https://api.plantvsundead.com/farms/water-plant"
     payload = {"slotId": slot_id}
     headers = {"authorization": f"bearerHeader {token}"}
     response = await session.request("POST", url, json=payload, headers=headers)
-    # data = await response.json()
-    # le = sum([_data["amount"] for _data in data["data"]])
-    # return le
+    data = await response.json()
+    return data
 
 
 async def chase_crow(
         session: aiohttp.ClientSession,
         token: str,
         slot_id: str,
-):
+) -> dict:
     url = "https://api.plantvsundead.com/farms/chase-crow"
     payload = {"slotId": slot_id}
     headers = {"authorization": f"bearerHeader {token}"}
     response = await session.request("POST", url, json=payload, headers=headers)
-    # data = await response.json()
-    # le = sum([_data["amount"] for _data in data["data"]])
-    # return le
+    data = await response.json()
+    return data
 
 
 async def chase_good_crow(
         session: aiohttp.ClientSession,
         token: str,
         slot_id: str,
-):
+) -> dict:
     url = "https://api.plantvsundead.com/farms/chase-good-crow"
 
     payload = {"slotId": slot_id}
     headers = {"authorization": f"bearerHeader {token}"}
     response = await session.request("POST", url, json=payload, headers=headers)
+    data = await response.json()
+    return data
 
 
 async def harvest_plants(
         session: aiohttp.ClientSession,
         token: str,
         slot_ids: list[str],
-):
+) -> dict:
     url = "https://api.plantvsundead.com/farms/harvest-plant"
     payload = {"slotIds": slot_ids}
     headers = {"authorization": f"bearerHeader {token}"}
     response = await session.request("POST", url, json=payload, headers=headers)
+    data = await response.json()
+    return data

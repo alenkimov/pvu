@@ -47,4 +47,11 @@ class User(BaseModel):
     le_amount: int
     number_of_boxchain_tickets: int
     number_of_lottery_tickets: int
+    number_of_seeds: int
     public_address: str
+
+
+class Result(BaseModel):
+    le: int
+    tickets: int
+    seeds: int
