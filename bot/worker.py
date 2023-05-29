@@ -11,6 +11,7 @@ from eth_account.signers.local import LocalAccount
 from bot.pvu_api import get_auth_token, get_slots_by_location, get_land, get_user_info, harvest_plants
 from bot.pvu_api import water_plant, chase_crow, chase_good_crow
 from bot.pvu_api import buy_water, buy_scarecrow
+from bot.pvu_api.exceptions import PVUException
 from bot.paths import INPUT_DIR, PRIVATE_KEYS_TXT, TOKENS_TXT
 from bot.logger import logger
 from bot.config import SLEEP_TIME, PROCESS_ONLY_MY_PLANTS, PROCESS_DELAY
@@ -29,6 +30,12 @@ for filepath in [PRIVATE_KEYS_TXT, TOKENS_TXT]:
 
 
 async def work():
+    # По умолчанию обрабатываются только растения, принадлежащие пользователю
+    if PROCESS_ONLY_MY_PLANTS:
+        logger.info(f"Обработка растений, принадлежащих пользователю")
+    else:
+        logger.info(f"Обработка всех растений, включая чужие")
+
     while True:
         tokens: set[str] = set()
 
@@ -50,8 +57,10 @@ async def work():
             # Запрашиваем токены по приватным ключам
             try:
                 tokens.update({await get_auth_token(session, account) for account in accounts})
-            except:
-                logger.error(f"Не удалось запросить токены авторизации")
+            except PVUException as e:
+                logger.error(f" Не удалось запросить токены авторизации: {e.msg}")
+            except Exception:
+                logger.error(f"Не удалось запросить токены авторизации: неизвестная ошибка")
             if not tokens:
                 logger.warning(
                     f"Для работы скрипта требуется хотя бы один токен авторизации или приватный ключ!"
@@ -61,50 +70,50 @@ async def work():
                 )
                 break
 
-            # По умолчанию обрабатываются только растения, принадлежащие пользователю
-            if PROCESS_ONLY_MY_PLANTS:
-                logger.info(f"Обработка растений, принадлежащих пользователю")
-            else:
-                logger.info(f"Обработка всех растений, включая чужие")
-
             # Обрабатываем токены
             for token in tokens:
                 # Получаем данные о землях пользователя
                 try:
                     lands = await get_land(session, token)
-                except:
+                except PVUException as e:
                     logger.error(
-                        f"[{user.public_address}]"
-                        f" Не удалось получить данные о землях пользователя"
+                        f"[token={token[:4]}...{token[-4:]}]"
+                        f" Не удалось получить данные о землях пользователя: {e}"
+                    )
+                    continue
+                except Exception:
+                    logger.error(
+                        f"[token={token[:4]}...{token[-4:]}]"
+                        f" Не удалось получить данные о землях пользователя: неизвестная ошибка"
                     )
                     continue
 
                 for land in lands:
                     # Получаем актуальные данные о пользователе
-                    # Данные нужно актуализировать после обработки каждой земли
                     try:
                         user = await get_user_info(session, token)
-                        logger.info(
-                            f"[{user.public_address}]"
-                            f" [land.x={land.location.x}, land.y={land.location.y}]"
-                            f" LE={user.le_amount}"
-                            f", water={user.watering_tools}"
-                            f", scarecrows={user.chase_crow_tools}"
-                            f", tickets={user.number_of_lottery_tickets}"
-                            f", seeds={user.number_of_seeds}"
-                        )
                     except:
-                        logger.error(f"[{token[:4]}...{token[-4:]}] Не удалось получить данные о пользователе")
+                        logger.error(
+                            f"[token={token[:4]}...{token[-4:]}]"
+                            f" Не удалось получить данные о пользователе"
+                        )
                         continue
 
                     # Получаем данные о слотах земли
                     try:
                         slots = await get_slots_by_location(session, token, land.location)
-                    except:
+                    except PVUException as e:
                         logger.error(
                             f"[{user.public_address}]"
                             f" [land.x={land.location.x}, land.y={land.location.y}]"
-                            f" Не удалось получить данные о слотах (растениях)"
+                            f" Не удалось получить данные о слотах (растениях): {e}"
+                        )
+                        continue
+                    except Exception:
+                        logger.error(
+                            f"[{user.public_address}]"
+                            f" [land.x={land.location.x}, land.y={land.location.y}]"
+                            f" Не удалось получить данные о слотах (растениях): неизвестная ошибка"
                         )
                         continue
 
@@ -139,11 +148,18 @@ async def work():
                                     f" [land.x={land.location.x}, land.y={land.location.y}]"
                                     f" Приобретено пугалок: {chase_crow_tools_to_buy}"
                                 )
-                            except:
+                            except PVUException as e:
                                 logger.error(
                                     f"[{user.public_address}]"
                                     f" [land.x={land.location.x}, land.y={land.location.y}]"
-                                    f" Не удалось купить пугалки"
+                                    f" Не удалось купить пугалки: {e.msg}"
+                                )
+                                continue
+                            except Exception:
+                                logger.error(
+                                    f"[{user.public_address}]"
+                                    f" [land.x={land.location.x}, land.y={land.location.y}]"
+                                    f" Не удалось купить пугалки: неизвестная ошибка"
                                 )
                                 continue
                         if watering_tools_to_buy > 0:
@@ -154,11 +170,18 @@ async def work():
                                     f" [land.x={land.location.x}, land.y={land.location.y}]"
                                     f" Приобретено воды: {watering_tools_to_buy}"
                                 )
-                            except:
+                            except PVUException as e:
                                 logger.error(
                                     f"[{user.public_address}]"
                                     f" [land.x={land.location.x}, land.y={land.location.y}]"
-                                    f" Не удалось купить воду"
+                                    f" Не удалось купить воду: {e.msg}"
+                                )
+                                continue
+                            except Exception:
+                                logger.error(
+                                    f"[{user.public_address}]"
+                                    f" [land.x={land.location.x}, land.y={land.location.y}]"
+                                    f" Не удалось купить воду: неизвестная ошибка"
                                 )
                                 continue
 
@@ -177,12 +200,19 @@ async def work():
                                     f" [slot.x={slot.location.x}, slot.y={slot.location.y}]"
                                     f" Ворона прогнана! Награды: {rewards}"
                                 )
-                            except:
+                            except PVUException as e:
                                 logger.error(
                                     f"[{user.public_address}]"
                                     f" [land.x={land.location.x}, land.y={land.location.y}]"
                                     f" [slot.x={slot.location.x}, slot.y={slot.location.y}]"
-                                    f" Не удалось прогнать ворону"
+                                    f" Не удалось прогнать ворону: {e.msg}"
+                                )
+                            except Exception:
+                                logger.error(
+                                    f"[{user.public_address}]"
+                                    f" [land.x={land.location.x}, land.y={land.location.y}]"
+                                    f" [slot.x={slot.location.x}, slot.y={slot.location.y}]"
+                                    f" Не удалось прогнать ворону: неизвестная ошибка"
                                 )
                         if slot.action_info.is_need_water:
                             try:
@@ -194,12 +224,19 @@ async def work():
                                     f" [slot.x={slot.location.x}, slot.y={slot.location.y}]"
                                     f" Растение полито! Награды: {rewards}"
                                 )
-                            except:
+                            except PVUException as e:
                                 logger.error(
                                     f"[{user.public_address}]"
                                     f" [land.x={land.location.x}, land.y={land.location.y}]"
                                     f" [slot.x={slot.location.x}, slot.y={slot.location.y}]"
-                                    f" Не удалось полить растение"
+                                    f" Не удалось прогнать ворону: {e.msg}"
+                                )
+                            except Exception:
+                                logger.error(
+                                    f"[{user.public_address}]"
+                                    f" [land.x={land.location.x}, land.y={land.location.y}]"
+                                    f" [slot.x={slot.location.x}, slot.y={slot.location.y}]"
+                                    f" Не удалось полить растение: неизвестная ошибка"
                                 )
                         if slot.deco_effects is not None:
                             if slot.deco_effects.is_good_crow is not None and slot.deco_effects.is_good_crow:
@@ -214,38 +251,59 @@ async def work():
                                             f" [slot.x={slot.location.x}, slot.y={slot.location.y}]"
                                             f" Добрая ворона прогнана! Награды: {rewards}"
                                         )
-                                    except:
+                                    except PVUException as e:
                                         logger.error(
                                             f"[{user.public_address}]"
                                             f" [land.x={land.location.x}, land.y={land.location.y}]"
                                             f" [slot.x={slot.location.x}, slot.y={slot.location.y}]"
-                                            f" Не удалось прогнать добрую ворону"
+                                            f" Не удалось прогнать ворону: {e.msg}"
                                         )
-
+                                    except Exception:
+                                        logger.error(
+                                            f"[{user.public_address}]"
+                                            f" [land.x={land.location.x}, land.y={land.location.y}]"
+                                            f" [slot.x={slot.location.x}, slot.y={slot.location.y}]"
+                                            f" Не удалось прогнать добрую ворону: неизвестная ошибка"
+                                        )
                     # Сбор наград
-                    try:
-                        now = datetime.utcnow().replace(tzinfo=timezone.utc)
-                        slots_to_harvest = []
-                        for slot in slots:
-                            if slot.harvest_time is not None and now > slot.harvest_time:
-                                slots_to_harvest.append(slot)
-                        if slots_to_harvest:
+                    now = datetime.utcnow().replace(tzinfo=timezone.utc)
+                    slots_to_harvest = []
+                    for slot in slots:
+                        if slot.harvest_time is not None and now > slot.harvest_time:
+                            slots_to_harvest.append(slot)
+                    if slots_to_harvest:
+                        try:
                             slot_ids_to_harvest = [slot.id for slot in slots_to_harvest]
                             rewards = await harvest_plants(session, token, slot_ids_to_harvest)
-                            for slot in slots_to_harvest:
-                                logger.success(
-                                    f"[{user.public_address}]"
-                                    f" [land.x={land.location.x}, land.y={land.location.y}]"
-                                    f" [slot.x={slot.location.x}, slot.y={slot.location.y}]"
-                                    f" Награда собрана!"
-                                )
-                            logger.info(f"Информация о собранной награде: {rewards}")
-                    except:
-                        logger.error(
-                            f"[{user.public_address}]"
-                            f" [land.x={land.location.x}, land.y={land.location.y}]"
-                            f" Не удалось собрать награды"
-                        )
+                            logger.success(
+                                f"[{user.public_address}]"
+                                f" [land.x={land.location.x}, land.y={land.location.y}]"
+                                f" Награды собраны: {rewards}"
+                            )
+                        except PVUException as e:
+                            logger.error(
+                                f"[{user.public_address}]"
+                                f" [land.x={land.location.x}, land.y={land.location.y}]"
+                                f" [slot.x={slot.location.x}, slot.y={slot.location.y}]"
+                                f" Не удалось прогнать ворону: {e.msg}"
+                            )
+                        except Exception:
+                            logger.error(
+                                f"[{user.public_address}]"
+                                f" [land.x={land.location.x}, land.y={land.location.y}]"
+                                f" Не удалось собрать награды: неизвестная ошибка"
+                            )
+                else:
+                    logger.info(
+                        f"[{user.public_address}]"
+                        f" [land.x={land.location.x}, land.y={land.location.y}]"
+                        f" Итого:"
+                        f" le={user.le_amount}"
+                        f" water={user.watering_tools}"
+                        f" scarecrows={user.chase_crow_tools}"
+                        f" tickets={user.number_of_lottery_tickets}"
+                        f" seeds={user.number_of_seeds}"
+                    )
 
         logger.info(f"Сплю {SLEEP_TIME} секунд :)")
         sleep(SLEEP_TIME)
