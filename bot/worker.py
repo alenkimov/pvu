@@ -124,12 +124,19 @@ async def work():
                     # Подсчет количество ворон и требующих полива растений
                     crow_amount = len(list(filter(lambda slot: slot.action_info.is_have_crow, slots)))
                     need_water_amount = len(list(filter(lambda slot: slot.action_info.is_need_water, slots)))
-                    logger.info(
-                        f"[{user.public_address}]"
-                        f" [land.x={land.location.x}, land.y={land.location.y}]"
-                        f" Ворон: {crow_amount}"
-                        f", требуют воды: {need_water_amount}"
-                    )
+                    if not (crow_amount and need_water_amount):
+                        logger.info(
+                            f"[{user.public_address}]"
+                            f" [land.x={land.location.x}, land.y={land.location.y}]"
+                            f" Обработка не требуется"
+                        )
+                    else:
+                        logger.info(
+                            f"[{user.public_address}]"
+                            f" [land.x={land.location.x}, land.y={land.location.y}]"
+                            f" Ворон: {crow_amount}"
+                            f", требуют воды: {need_water_amount}"
+                        )
 
                     # Подсчет количества инструментов к покупке
                     chase_crow_tools_to_buy = max(crow_amount - user.chase_crow_tools, 0)
@@ -229,7 +236,7 @@ async def work():
                                     f"[{user.public_address}]"
                                     f" [land.x={land.location.x}, land.y={land.location.y}]"
                                     f" [slot.x={slot.location.x}, slot.y={slot.location.y}]"
-                                    f" Не удалось прогнать ворону: {e.msg}"
+                                    f" Не удалось полить растение: {e.msg}"
                                 )
                             except Exception:
                                 logger.error(
@@ -270,7 +277,9 @@ async def work():
                     slots_to_harvest = []
                     for slot in slots:
                         if slot.harvest_time is not None and now > slot.harvest_time:
-                            slots_to_harvest.append(slot)
+                            # Собирать награды можно только со своих растений
+                            if slot.owner_id == user.public_address:
+                                slots_to_harvest.append(slot)
                     if slots_to_harvest:
                         try:
                             slot_ids_to_harvest = [slot.id for slot in slots_to_harvest]
@@ -284,8 +293,7 @@ async def work():
                             logger.error(
                                 f"[{user.public_address}]"
                                 f" [land.x={land.location.x}, land.y={land.location.y}]"
-                                f" [slot.x={slot.location.x}, slot.y={slot.location.y}]"
-                                f" Не удалось прогнать ворону: {e.msg}"
+                                f" Не удалось собрать награды: {e.msg}"
                             )
                         except Exception:
                             logger.error(
